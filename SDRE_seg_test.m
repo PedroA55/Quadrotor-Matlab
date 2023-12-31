@@ -31,7 +31,7 @@ tau_s = 0.0452; % atraso de transporte
 incluir_din_motor = -1;
 %% Configuração de simulação
 % Entrada - Valores desejados (input)
-Tfinal=120;
+Tfinal=10;
 tStepMax=1e-3; Ts = tStepMax;
 t=0:tStepMax:Tfinal; %Define o vetor de tempo
 t=t';
@@ -41,10 +41,14 @@ state_d = zeros(length(t),12); % Define o tamanho da matriz do vetor de estado
 %X_d=traj_vertical(t,state_d);
 %X_d=traj_diagonal(t,state_d);
 %X_d = traj_estab_Atitude(t, state_d);
+%X_d = traj_decola_hover(t, state_d);
 %X_d = traj_circular(t, state_d);
 %X_d=traj_senoide(t,state_d);
 %X_d=traj_helipcoidal(t,state_d);
-X_d=traj_oito(t,state_d);
+%X_d=traj_oito(t,state_d);
+X_d = traj_waypoint(t, Ts);
+m = size(X_d,1);
+t = linspace(0,Tfinal,m)';
 %% Condições iniciais dependendo da minha trajetória X_d
 % Condições iniciais para as posições
 x0 = X_d(1,1);
@@ -92,14 +96,14 @@ rank(Co);
 fprintf('\n O posto da Matriz de Controlabilidade      = %g',rank(Co))
 fprintf('\n Dimensão da Matriz A                       = %g \n',6)
 % Definição das matrizes de poderação Q e R
-q11 = 1;
+q11 = 10^(3);
 q22 = 5;
 q33 = 5;
 Q2 = diag([q11,q22,q33]);
 Q = eye(6)*q11;
-r11 = 0.001;
-r22 = 0.001;
-r33 = 0.001;
+r11 = 0.1;
+r22 = 0.1;
+r33 = 0.1;
 R = [r11 0 0;0 r22 0; 0 0 r33];
 % Resolução da eq. Ricatti pelo MATLAB
 P = are(A, B*inv(R)*B',C'*Q*C);
@@ -146,9 +150,9 @@ C = eye(6,6);
 % Testei a controlabilidade para x0 e este sistema é controlável nesta
 % condição.
 % Definição das matrizes de poderação Q e R
-q11o =40;
+q11o =10^(3);
 Qo = eye(6)*q11;
-r11o = 10^(-4);
+r11o = 10^(-1);
 r22o = r11;
 r33o = r11;
 Ro = [r11o 0 0;0 r22o 0; 0 0 r33o];
@@ -162,25 +166,24 @@ Ro = [r11o 0 0;0 r22o 0; 0 0 r33o];
 for i=2:(length(t)-1)
     %---------------------- Controle de posição --------------------------%
     % Preciso evitar o wind-up na parte integral: 
-%     if(X_d(i,1)-x(1))<= 0
-%         I(1) = 0;
-%     end
-%     if(X_d(i,2)-x(2))<= 0
-%         I(2) = 0;
-%     end
-%     if(X_d(i,3)-x(3))<= 0
-%         I(3) = 0;
-%     end
+    if(X_d(i,1)-x(1))<= 0
+        I(1) = 0;
+    end
+    if(X_d(i,2)-x(2))<= 0
+        I(2) = 0;
+    end
+    if(X_d(i,3)-x(3))<= 0
+        I(3) = 0;
+    end
     ddx = (X_d(i,4) - X_d(i-1,4))/Ts; ddy = (X_d(i,5) - X_d(i-1,5))/Ts; ddz = (X_d(i,6) - X_d(i-1,6))/Ts; 
     acc = [ddx, ddy, ddz]; % será que é a melhor forma de derivar ?
     [u1, phi_des, theta_des, psi_des, I] = controller_pos(x, X_d(i,:), acc, params, I, Ts);
-    %------------------- Controle de atitude de PID ----------------------%
-    %[u2, u3, u4] = controller_att(phi_des, theta_des, psi_des, x, X_d(i,:), params);
-    
     %-------- Gerando a trajetória de referência para a atitude ----------%
     dphi = (phi_des - x_ant(7))/Ts;dtheta = (theta_des - x_ant(8))/Ts; dpsi = (psi_des - x_ant(9))/Ts;
     z = [phi_des, theta_des, psi_des, dphi, dtheta, dpsi];
     %z = X_d(i,7:12);
+    %------------------- Controle de atitude de PID ----------------------%
+    %[u2, u3, u4] = controller_att(phi_des, theta_des, psi_des, x, X_d(i,:), params);
     %[u2, u3, u4] = controller_LQT(x,z, K, Kz);
     [u2, u3, u4] = controller_SDRE(x,wd,z, Ao, Bo, Qo, Ro, C, params);
     
@@ -190,6 +193,7 @@ for i=2:(length(t)-1)
     [x, xang, xpos, wd] = QuadModel(x,U,Ts);
     x_ant = x;
     %Guardando os vetores
+    Todos_estados(i+1,:) = x;
     Dados_posicao(i+1,:) = xpos;
     Dados_atitude(i+1,:) = xang;
     Ang_Target(i+1,:) = z;
@@ -207,7 +211,7 @@ figure
 subplot(3,2,1)
 plot(t,posicao_x, 'b')
 hold on
-plot(t,X_d(:,1),'-r')
+plot(t,X_d(:,1),'--r')
 grid minor
 xlabel('t (segundos)','Fontsize',11)
 ylabel('posição em x (m)','Fontsize',11)
@@ -217,14 +221,14 @@ subplot(3,2,3)
 plot(t,posicao_y, 'b')
 grid minor
 hold on
-plot(t,X_d(:,2),'-r')
+plot(t,X_d(:,2),'--r')
 xlabel('t (segundos)','Fontsize',11)
 ylabel('posição em y (m)','Fontsize',11)
 legend('y','y desejado')
 subplot(3,2,5)
 plot(t,posicao_z, 'b')
 hold on
-plot(t,X_d(:,3),'-r')
+plot(t,X_d(:,3),'--r')
 grid minor
 xlabel('t (segundos)','Fontsize',11)
 ylabel('altitude (m)','Fontsize',11)
@@ -232,9 +236,9 @@ legend('z','z desejado')
 subplot(3,2,2)
 plot(t,rolagem, 'b')
 hold on
-plot(t,X_d(:,7),'-r')
+plot(t,X_d(:,7),'--r')
 hold on
-plot(t, Ang_Target(:,1), 'g')
+plot(t, Ang_Target(:,1), '--g')
 grid minor
 xlabel('t (segundos)','Fontsize',11)
 ylabel('\phi (rad)','Fontsize',11)
@@ -242,9 +246,9 @@ legend('\phi','\phi desejado', '\phi alvo')
 subplot(3,2,4)
 plot(t,arfagem, 'b')
 hold on
-plot(t,X_d(:,8),'-r')
+plot(t,X_d(:,8),'--r')
 hold on
-plot(t, Ang_Target(:,2), 'g')
+plot(t, Ang_Target(:,2), '--g')
 grid minor
 xlabel('t (segundos)','Fontsize',11)
 ylabel('\theta (rad)','Fontsize',11)
@@ -252,9 +256,9 @@ legend('\theta','\theta desejado', '\theta alvo')
 subplot(3,2,6)
 plot(t,guinada, 'b')
 hold on
-plot(t,X_d(:,9),'-r')
+plot(t,X_d(:,9),'--r')
 hold on
-plot(t, Ang_Target(:,3), 'g')
+plot(t, Ang_Target(:,3), '--g')
 grid minor
 xlabel('t (segundos)','Fontsize',11)
 ylabel('\psi (rad)','Fontsize',11)
@@ -262,9 +266,9 @@ legend('\psi','\psi desejado', '\psi alvo')
 suptitle('Resposta dos 6 graus de liberdade')
 % Plotar a trajetória em 3D
 figure 
-plot3(posicao_x,posicao_y,posicao_z, 'b')
+plot3(posicao_x,posicao_y,posicao_z, 'b', 'LineWidth', 2)
 hold on
-plot3(X_d(:,1),X_d(:,2),X_d(:,3), 'r')
+plot3(X_d(:,1),X_d(:,2),X_d(:,3), '-.r', 'LineWidth', 2)
 grid on
 xlabel('x coordinates')
 ylabel('y coordinates')
@@ -284,16 +288,62 @@ legend('x desejado','y desejado','z desejado','\phi desejado','\theta desejado',
 figure
 plot(posicao_y,posicao_z, 'r')
 hold on 
-plot(X_d(:,2),X_d(:,3))
-grid on
+plot(X_d(:,2),X_d(:,3), 'b')
+grid minor
 ylabel('Coordenadas em y')
 zlabel('Coordenadas em z')
 legend('Real Trajectory','Desired Trajectory')
 title('Trajetória do Quadrotor no plano yz')
-% erro na altura
+% Erros na posição
 figure;
+subplot(3,1,1)
 plot(t,(X_d(:,3)-posicao_z), 'b')
 grid minor
 xlabel('Tempo (s)')
 ylabel('Erro (m)')
 title('Erro na altitude')
+subplot(3,1,2)
+plot(t,(X_d(:,1)-posicao_x), 'g')
+grid minor
+xlabel('Tempo (s)')
+ylabel('Erro (m)')
+title('Erro na posição x')
+subplot(3,1,3)
+plot(t,(X_d(:,2)-posicao_y), 'r')
+grid minor
+xlabel('Tempo (s)')
+ylabel('Erro (m)')
+title('Erro na posição y')
+% Sinal de controle
+
+
+% Gráfico com Momento, Taxa (desejada vs real), ângulo (desejado vs real)
+figure;
+subplot(3,1,1)
+plot(t,Controle(:,2), 'b', 'LineWidth',1)
+grid minor
+ylabel('u_2 (Nm)')
+title('Moment')
+subplot(3,1,2)
+plot(t,rolagem, 'b', 'LineWidth',1)
+hold on
+plot(t,Ang_Target(:,1), '-.r', 'LineWidth',1)
+ylabel('\phi (rad)')
+title ('roll')
+legend('Simulated', 'Desired')
+grid minor
+subplot(3,1,3)
+plot(t,Todos_estados(:,10), 'b', 'LineWidth',1)
+hold on
+plot(t,Ang_Target(:,4), '-.r', 'LineWidth',1)
+ylabel('p (rad/s)')
+title('roll rate')
+legend('Simulated', 'Desired')
+grid minor
+sgtitle('Results SDRE attitude controller')
+%% Aramazenamento de dados
+% Estou experimentando controladores diferentes e portanto é interessante
+% fazermos comparativos diretos entre eles. 
+% Salvando todas as informações
+DATA = [t, Todos_estados, X_d, Ang_Target, Controle];
+save("PID_att.mat","DATA")
