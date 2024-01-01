@@ -19,14 +19,14 @@ function [M2, M3, M4] = controller_att(phi_des, theta_des, psi_des, state, des_s
 
 % Ganhos
  
-kp_phi = 1000.01;
-kv_phi = 0.001;
+kp_phi = 35;
+kv_phi = 1.5*10^(1); % Utilize kv = 35 para a traj_estab_Atitude
  
-kp_theta = 1000.01;
-kv_theta = 0.001;
+kp_theta = 3.5*10^(1);
+kv_theta = 1.5*10^(1); % Utilize kv = 35 para a traj_estab_Atitude
  
-kp_yaw = 0.1;
-kv_yaw = 0.1;
+kp_yaw = 10;
+kv_yaw = 10;
  
 
 %  Moment
@@ -34,9 +34,9 @@ kv_yaw = 0.1;
 % M = (params.I)*[(-kv_phi*state(10) + kp_phi*(phi_des - state(7))); 
 %      (-kv_theta*state(11) + kp_theta*(theta_des - state(8))); 
 %      (kv_yaw*(des_state(12) - state(12)) + kp_yaw*(psi_des - state(9)))];
-M2 = params(3)*(-kv_phi*state(10) + kp_phi*(phi_des - state(7)));
-M3 = params(4)*(-kv_theta*state(11) + kp_theta*(theta_des - state(8)));
-M4 = params(5)*(kv_yaw*(des_state(12) - state(12)) + kp_yaw*(psi_des - state(9)));
+M2 = (params(3)/params(7))*(-kv_phi*state(10) + kp_phi*(phi_des - state(7)));
+M3 = (params(4)/params(7))*(-kv_theta*state(11) + kp_theta*(theta_des - state(8)));
+M4 = (params(5)/params(7))*(kv_yaw*(des_state(12) - state(12)) + kp_yaw*(psi_des - state(9)));
 
 % =======================================================================
 
