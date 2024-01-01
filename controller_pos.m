@@ -23,8 +23,8 @@ ki_x = 0;
 kd_x = 10;
 
 kp_z = 1*10^(-7);
-ki_z = 2*10^(-5); % parcela integrativa atrapalha muito
-kd_z = 1*10; % parcela derivativa também atrapalha muito
+ki_z = 11*10^(0); % erro não converge. Fica próximo mas não converge
+kd_z = 3.5*10; %
  
 kp_y = 4*10^(-8);
 ki_y = 2*10^(-6);
