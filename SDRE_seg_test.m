@@ -30,7 +30,7 @@ params = [g m Ixx Iyy Izz Jr L I1 I2 I3];
 % 1  SIM
 incluir_din_motor = -1;
 %% Configuração de simulação
-Tfinal=20;
+Tfinal=10;
 tStepMax=1e-3; Ts = tStepMax; % Tempo de amostragem
 t=0:tStepMax:Tfinal; %Define o vetor de tempo
 t=t';
@@ -41,16 +41,17 @@ state_d = zeros(length(t),12); % Define o tamanho da matriz do vetor de estado
 %X_d=traj_vertical(t,state_d);
 %X_d = traj_decola_hover(t, state_d);
 %X_d=traj_diagonal(t,state_d);
-%X_d = traj_estab_Atitude(t, state_d);
+X_d = traj_estab_Atitude(t, state_d);
 %X_d = traj_circular(t, state_d);
 %X_d=traj_senoide(t,state_d);
 %X_d=traj_helipcoidal(t,state_d);
 %X_d=traj_oito(t,state_d);
+%X_d = traj_step_angle(t, state_d);
 % ------------------------ Trajetórias complexas ------------------------ %
-uso_waypoint = 1; % decido se a trajetória é com way_point
-%X_d = traj_waypoint(t, Ts);
-X_d = traj_waypoint2(t, Ts);
+uso_waypoint = 0; % decido se a trajetória é com way_point
 if uso_waypoint % correção do tamanho do vetor tempo.
+    %X_d = traj_waypoint(t, Ts);
+    X_d = traj_waypoint2(t, Ts);
     m = size(X_d,1);
     t = linspace(0,Tfinal,m)';
 end
@@ -91,6 +92,8 @@ A=zeros(6);
 A(1,4) = 1;
 A(2,5) = 1;
 A(3,6) = 1;
+A(4,5) = -(Jr/Ixx)*wd;
+A(5,4) = (Jr/Iyy)*wd;
 B=zeros(6,3);
 B(4,1)=L/Ixx;
 B(5,2)=L/Iyy;
@@ -109,9 +112,9 @@ q44 = 1; % Restringe menos a taxa (p,q,r)
 q55 = 1;
 q66 = 1;
 Q = diag([q11,q22,q33,q44,q55,q66]);
-r11 = 0.1;
-r22 = 0.1;
-r33 = 0.1;
+r11 = 10^(-1);
+r22 = 10^(-1);
+r33 = 10^(-1);
 R = [r11 0 0;0 r22 0; 0 0 r33];
 % Resolução da eq. Ricatti pelo MATLAB
 P = are(A, B*inv(R)*B',C'*Q*C);
@@ -122,21 +125,8 @@ K = inv(R)*B'*P;
 Kz = inv(R)*B'*G;
 %% Controlador ótimo não-linear, SDRE, para a dinâmica rotacional
 % Existem diversas configurações de matrizes A e B para casos subótimos.
-% Estou escolhendo de acordo com o trabalho de Voos 2006, mas um pouco
+ % Estou escolhendo de acordo com o trabalho de Voos 2006, mas um pouco
 % diferente
-Ao = zeros(6); % Matriz dos estados sub-ótima
-Ao(1,4) = 1;
-Ao(2,5) = 1;
-Ao(3,6) = 1;
-Ao(4,5) = -(Jr/Ixx)*wd;
-Ao(4,6) = x(11)*I1;
-Ao(5,4) = (Jr/Iyy)*wd;
-Ao(5,6) = x(10)*I2;
-Ao(6,5) = x(11)*I3;
-Bo=zeros(6,3);
-Bo(4,1)=L/Ixx;
-Bo(5,2)=L/Iyy;
-Bo(6,3)=L/Izz;
 %Saída
 C = eye(6,6);
 % Testei a controlabilidade para x0 e este sistema é controlável nesta
@@ -160,6 +150,7 @@ Ro = [r11o 0 0;0 r22o 0; 0 0 r33o];
 % análise. portanto ao rodar esse código de novo, por favor resetar os
 % estados, os integradores, os sinais de controle e etc.
 [x, I,acc, U, x_ant, wd] = ResetSimulation(xCI);
+tic
 for i=2:(length(t)-1)
     %---------------------- Controle de posição --------------------------%
     % Preciso evitar o wind-up na parte integral: 
@@ -184,15 +175,17 @@ for i=2:(length(t)-1)
     z = [phi_des, theta_des, psi_des, dphi, dtheta, dpsi];
     
     %------------------- Controladores de atitude ------------------------%
-    [u2, u3, u4] = controller_att(phi_des, theta_des, psi_des, x, X_d(i,:), params);
-    %[u2, u3, u4] = controller_LQT(x,z, K, Kz);
+    %[u2, u3, u4] = controller_att(phi_des, theta_des, psi_des, x, X_d(i,:), params);
+    [u2, u3, u4] = controller_LQT(x,z, K, Kz);
     %[u2, u3, u4] = controller_SDRE(x,wd,z, Ao, Bo, Qo, Ro, C, params);
-    
+    %[u2, u3, u4] = controller_SDREv2(x,wd,z, Ao, Bo, Qo, Ro, C, params);
+    %[u2, u3, u4] = controller_SDREv3(x,wd,z, Qo, Ro, C, params);
     %-------------------- Sinal de Controle Final ------------------------%
     U = [u1, u2, u3, u4]';
     
     %------------------------ Planta não linear --------------------------%
-    [x, xang, xpos, wd] = QuadModel(x,U,Ts);
+    %[x, xang, xpos, wd] = QuadModel(x,U,Ts);
+    [x, xang, xpos, wd, Monit] = QuadModel2(x,U,Ts);
     x_ant = x;
     
     %--------------------- Guardando os vetores --------------------------%
@@ -202,7 +195,11 @@ for i=2:(length(t)-1)
     Ang_Target(i+1,:) = z;
     Sinal_controle(i+1,:) = U';
     Dif_wd(i+1,:) = wd;
+    %--------------------- Vetores para monitorar ------------------------%
+    Monitorar(i+1,:) = Monit;
 end
+toc
+dtAlg = toc*1000; % Tempo de compilação 
 posicao_x = Dados_posicao(:,1);
 posicao_y = Dados_posicao(:,2);
 posicao_z = Dados_posicao(:,3);
@@ -344,10 +341,57 @@ ylabel('p (rad/s)')
 title('roll rate')
 legend('Simulated', 'Desired')
 grid minor
-sgtitle('Results PID attitude controller')
+sgtitle('Results LQT Roll controller')
+% Gráfico com Momento, Taxa (desejada vs real), ângulo (desejado vs real)
+figure;
+subplot(3,1,1)
+plot(t,Controle(:,3), 'b', 'LineWidth',1)
+grid minor
+ylabel('u_3 (Nm)')
+title('Moment')
+subplot(3,1,2)
+plot(t,arfagem, 'b', 'LineWidth',1)
+hold on
+plot(t,Ang_Target(:,2), '-.r', 'LineWidth',1)
+ylabel('\theta (rad)')
+title ('pitch')
+legend('Simulated', 'Desired')
+grid minor
+subplot(3,1,3)
+plot(t,Todos_estados(:,11), 'b', 'LineWidth',1)
+hold on
+plot(t,Ang_Target(:,5), '-.r', 'LineWidth',1)
+ylabel('q (rad/s)')
+title('pitch rate')
+legend('Simulated', 'Desired')
+grid minor
+sgtitle('Results LQT Pitch controller')
+figure;
+subplot(3,1,1)
+plot(t,Controle(:,4), 'b', 'LineWidth',1)
+grid minor
+ylabel('u_4 (Nm)')
+title('Moment')
+subplot(3,1,2)
+plot(t,guinada, 'b', 'LineWidth',1)
+hold on
+plot(t,Ang_Target(:,3), '-.r', 'LineWidth',1)
+ylabel('\psi (rad)')
+title ('yaw')
+legend('Simulated', 'Desired')
+grid minor
+subplot(3,1,3)
+plot(t,Todos_estados(:,12), 'b', 'LineWidth',1)
+hold on
+plot(t,Ang_Target(:,6), '-.r', 'LineWidth',1)
+ylabel('r (rad/s)')
+title('yaw rate')
+legend('Simulated', 'Desired')
+grid minor
+sgtitle('Results LQT Yaw controller')
 %% Aramazenamento de dados
 % Estou experimentando controladores diferentes e portanto é interessante
 % fazermos comparativos diretos entre eles. 
 % Salvando todas as informações
 DATA = [t, Todos_estados, X_d, Ang_Target, Controle];
-save("PID_att.mat","DATA")
+save("LQT_stb.mat","DATA")
