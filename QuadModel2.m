@@ -76,7 +76,7 @@ function [x, xang, xpos,wd, Monit] = QuadModel2(x,u,Ts)
     % integração numérica das acelerações (Essa é a melhor forma de integrar?)
     x(4) = x(4) + ddx*Ts; x(1) = x(1) + x(4)*Ts; %x
     x(5) = x(5) + ddy*Ts; x(2) = x(2) + x(5)*Ts; %y
-    x(6) = x(6) + ddz*Ts; x(3) = x(3) + x(6)*Ts; %psi
+    x(6) = x(6) + ddz*Ts; x(3) = x(3) + x(6)*Ts; %z
     xpos = [x(1), x(2), x(3)];
     % Variáveis de monitoramento
     Monit = [pqr', dpqr', ddang'];

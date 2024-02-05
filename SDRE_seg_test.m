@@ -30,7 +30,7 @@ params = [g m Ixx Iyy Izz Jr L I1 I2 I3];
 % 1  SIM
 incluir_din_motor = -1;
 %% Configuração de simulação
-Tfinal=10;
+Tfinal=25;
 tStepMax=1e-3; Ts = tStepMax; % Tempo de amostragem
 t=0:tStepMax:Tfinal; %Define o vetor de tempo
 t=t';
@@ -41,17 +41,20 @@ state_d = zeros(length(t),12); % Define o tamanho da matriz do vetor de estado
 %X_d=traj_vertical(t,state_d);
 %X_d = traj_decola_hover(t, state_d);
 %X_d=traj_diagonal(t,state_d);
-X_d = traj_estab_Atitude(t, state_d);
+%X_d = traj_estab_Atitude(t, state_d);
 %X_d = traj_circular(t, state_d);
 %X_d=traj_senoide(t,state_d);
 %X_d=traj_helipcoidal(t,state_d);
 %X_d=traj_oito(t,state_d);
 %X_d = traj_step_angle(t, state_d);
 % ------------------------ Trajetórias complexas ------------------------ %
-uso_waypoint = 0; % decido se a trajetória é com way_point
+uso_waypoint = 1; % decido se a trajetória é com way_point
 if uso_waypoint % correção do tamanho do vetor tempo.
     %X_d = traj_waypoint(t, Ts);
     X_d = traj_waypoint2(t, Ts);
+    %X_d = traj_waypoint3(t, Ts);
+    %X_d = traj_waypoint4(t, Ts);
+    %X_d = traj_waypointFinal(t, Ts);
     m = size(X_d,1);
     t = linspace(0,Tfinal,m)';
 end
@@ -105,16 +108,16 @@ rank(Co);
 fprintf('\n O posto da Matriz de Controlabilidade      = %g',rank(Co))
 fprintf('\n Dimensão da Matriz A                       = %g \n',6)
 % Definição das matrizes de poderação Q e R
-q11 = 10^(3); % pondera mais os ângulos
-q22 = 10^(3);
-q33 = 10^(3);
+q11 = 10^(2); % pondera mais os ângulos
+q22 = 10^(2);
+q33 = 10^(2);
 q44 = 1; % Restringe menos a taxa (p,q,r)
 q55 = 1;
 q66 = 1;
 Q = diag([q11,q22,q33,q44,q55,q66]);
-r11 = 10^(-1);
-r22 = 10^(-1);
-r33 = 10^(-1);
+r11 = 10^(0);
+r22 = 10^(0);
+r33 = 10^(0);
 R = [r11 0 0;0 r22 0; 0 0 r33];
 % Resolução da eq. Ricatti pelo MATLAB
 P = are(A, B*inv(R)*B',C'*Q*C);
@@ -132,14 +135,14 @@ C = eye(6,6);
 % Testei a controlabilidade para x0 e este sistema é controlável nesta
 % condição.
 % Definição das matrizes de poderação Q e R
-q11o = 10^(3); % pondera mais os ângulos
-q22o = 10^(3);
-q33o = 10^(3);
-q44o = 1; % Restringe menos a taxa (p,q,r)
-q55o = 1;
-q66o = 1;
+q11o = 10^(2); % pondera mais os ângulos
+q22o = 10^(2);
+q33o = 10^(2);
+q44o = 10^(0); % Restringe menos a taxa (p,q,r)
+q55o = 10^(0);
+q66o = 10^(0);
 Qo = diag([q11o,q22o,q33o,q44o,q55o,q66o]);
-r11o = 10^(-1);
+r11o = 10^(0);
 r22o = r11;
 r33o = r11;
 Ro = [r11o 0 0;0 r22o 0; 0 0 r33o];
@@ -176,10 +179,10 @@ for i=2:(length(t)-1)
     
     %------------------- Controladores de atitude ------------------------%
     %[u2, u3, u4] = controller_att(phi_des, theta_des, psi_des, x, X_d(i,:), params);
-    [u2, u3, u4] = controller_LQT(x,z, K, Kz);
+    %[u2, u3, u4] = controller_LQT(x,z, K, Kz);
     %[u2, u3, u4] = controller_SDRE(x,wd,z, Ao, Bo, Qo, Ro, C, params);
     %[u2, u3, u4] = controller_SDREv2(x,wd,z, Ao, Bo, Qo, Ro, C, params);
-    %[u2, u3, u4] = controller_SDREv3(x,wd,z, Qo, Ro, C, params);
+    [u2, u3, u4] = controller_SDREv3(x,wd,z, Qo, Ro, C, params);
     %-------------------- Sinal de Controle Final ------------------------%
     U = [u1, u2, u3, u4]';
     
@@ -389,9 +392,34 @@ title('yaw rate')
 legend('Simulated', 'Desired')
 grid minor
 sgtitle('Results LQT Yaw controller')
+figure; 
+subplot(3,1,1)
+plot(t,rolagem, 'g', 'LineWidth',1)
+grid minor
+hold on
+plot(t,Ang_Target(:,1), '-.k', 'LineWidth',1)
+ylabel('\phi (rad)')
+legend('Simulated', 'Desired')
+title('Roll')
+subplot(3,1,2)
+plot(t,arfagem, 'g', 'LineWidth',1)
+hold on
+plot(t,Ang_Target(:,2), '-.k', 'LineWidth',1)
+ylabel('\theta (rad)')
+title ('Pitch')
+grid minor
+subplot(3,1,3)
+plot(t,guinada, 'g', 'LineWidth',1)
+hold on
+plot(t,Ang_Target(:,3), '-.k', 'LineWidth',1)
+ylabel('\psi (rad)')
+xlabel('time (s)')
+title('Yaw')
+grid minor
+sgtitle('Results SDRE attitude controller')
 %% Aramazenamento de dados
 % Estou experimentando controladores diferentes e portanto é interessante
 % fazermos comparativos diretos entre eles. 
 % Salvando todas as informações
 DATA = [t, Todos_estados, X_d, Ang_Target, Controle];
-save("LQT_stb.mat","DATA")
+save("SDRE_stb2.mat","DATA")

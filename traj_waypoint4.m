@@ -1,18 +1,14 @@
-function X_d = traj_waypoint2(t,Ts)
+function X_d = traj_waypoint4(t,Ts)
     %Função criada para gerar uma trajetória a partir de waypoints
     fs = 1/Ts;
-    n = int32(length(t)/10); % Vetor de tempo dividido em 10 partes
+    n = int32(length(t)/6); % Vetor de tempo dividido em 6 partes
     %      Tempo   Waypoint(x,y,z),     Orientação
-    wps = [ t(1),        0,0,0,              0,0,0;
-           t(n),         1,1,1,              0,0,0;
-           t(2*n),       2,0,2,              0,0,0;
-           t(3*n),       4,-1,1,             0,0,0;
-           t(4*n),       3,2,3,              0,0,0;
-           t(5*n),       3,3,3,              0,0,0;
-           t(6*n),       2,4,3.5,            0,0,0;
-           t(7*n),       5,-2,4,             0,0,0;
-           t(8*n),       -1,0,4,             0,0,0;
-           t(end),       -1,1,4.5,           0,0,0;];
+    wps = [ t(1),        5,15,2,              0,0,0;
+           t(n),         25,5,3,              0,0,0;
+           t(2*n),       20,25,5,              0,0,0;
+           t(3*n),       14,14,2,             0,0,0;
+           t(4*n),       18,18,6,             0,0,0;
+           t(end),       5,14,4,              0,0,0];
 
     trajetoria = waypointTrajectory(wps(:,2:4),'SampleRate',fs,'TimeOfArrival',wps(:,1),...
         'Orientation',quaternion(wps(:,5:7),'eulerd','ZYX','frame'));
