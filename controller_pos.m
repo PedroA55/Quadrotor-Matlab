@@ -18,16 +18,16 @@ function [F, phi_des, theta_des, psi_des, I] = controller_pos(state, des_state, 
 % =================== Ganhos do controle de posição ===================
 
 % Ganhos
-kp_x = 4*10^(-8);
+kp_x = 4*10^(-3);
 ki_x = 0;
 kd_x = 10;
 
-kp_z = 1*10^(-7);
+kp_z = 1*10^(-3);
 ki_z = 11*10^(0); % erro não converge. Fica próximo mas não converge
 kd_z = 3.5*10^(1); %
  
-kp_y = 4*10^(-8);
-ki_y = 2*10^(-6);
+kp_y = 4*10^(-3);
+ki_y = 2*10^(-4);
 kd_y = 10;
 
 % Ação Integral

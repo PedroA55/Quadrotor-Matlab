@@ -46,8 +46,10 @@ function [x, xang, xpos,wd, Monit] = QuadModel2(x,u,Ts)
     W = [1, sin(x(7))*tan(x(8)), cos(x(7))*tan(x(8));
         0, cos(x(7)), -sin(x(7));
         0, sin(x(7))/cos(x(8)), cos(x(7))/cos(x(8))];
-    
-    pqr = inv(W)*[x(10); x(11); x(12)];
+    W_inv = [1, 0, -sin(x(8));
+             0, cos(x(7)), cos(x(8))*sin(x(7));
+             0, -sin(x(7)), cos(x(8))*cos(x(7))];
+    pqr = W_inv*[x(10); x(11); x(12)];
     % equações de movimento de ROTAÇÃO - Body Frame
     dp = I1*pqr(2)*pqr(3) -(Jr/Ixx)*pqr(2)*wd + (L/Ixx)*u(2);
     dq = I2*pqr(1)*pqr(3) +(Jr/Iyy)*pqr(1)*wd + (L/Iyy)*u(3);
@@ -55,9 +57,9 @@ function [x, xang, xpos,wd, Monit] = QuadModel2(x,u,Ts)
     dpqr = [dp; dq; dr];
     
     % Retorna para o Inertial frame
-    dW = [0 x(10)*cos(x(7))*tan(x(8))+x(11)*(sin(x(7))/(cos(x(8))^2)) -x(10)*sin(x(7))*cos(x(8))+x(11)*(cos(x(7))/(cos(x(8))^2));
-        0 -x(10)*sin(x(7)) -x(10)*sin(x(7));
-        0 x(10)*(cos(x(7))/cos(x(8)))+x(10)*tan(x(8))*(sin(x(7))/cos(x(8))) -x(10)*(sin(x(7))/cos(x(8)))+x(11)*tan(x(8))*(cos(x(7))/cos(x(8)))];
+    dW = [0, x(10)*cos(x(7))*tan(x(8))+x(11)*(sin(x(7))/(cos(x(8))^2)), -x(10)*sin(x(7))*cos(x(8))+x(11)*(cos(x(7))/(cos(x(8))^2));
+        0, -x(10)*sin(x(7)), -x(10)*cos(x(7));
+        0, x(10)*(cos(x(7))/cos(x(8)))+x(10)*tan(x(8))*(sin(x(7))/cos(x(8))) -x(10)*(sin(x(7))/cos(x(8)))+x(11)*tan(x(8))*(cos(x(7))/cos(x(8)))];
     
     ddang = dW*pqr + W*dpqr;
      
