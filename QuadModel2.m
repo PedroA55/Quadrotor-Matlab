@@ -72,8 +72,12 @@ function [x, xang, xpos,wd, Monit] = QuadModel2(x,u,Ts)
     xang = [x(7), x(8), x(9)];
     
     % equações de movimento de TRANSLAÇÃO
-    ddx = (cos(x(7))*sin(x(8))*cos(x(9))+sin(x(7))*sin(x(9)))*(u(1)/m);
-    ddy = (cos(x(7))*sin(x(8))*sin(x(9))-sin(x(7))*cos(x(9)))*(u(1)/m);
+    %ddx = (cos(x(7))*sin(x(8))*cos(x(9))+sin(x(7))*sin(x(9)))*(u(1)/m);
+    %ddy = (cos(x(7))*sin(x(8))*sin(x(9))-sin(x(7))*cos(x(9)))*(u(1)/m);
+    %ddz = cos(x(7))*cos(x(8))*(u(1)/m) - g;
+    % versão alternativa que parece mais correta
+    ddx = (sin(x(8))*cos(x(9))+cos(x(8))*sin(x(7))*sin(x(9)))*(u(1)/m);
+    ddy = (sin(x(8))*sin(x(9))-cos(x(8))*sin(x(7))*cos(x(9)))*(u(1)/m);
     ddz = cos(x(7))*cos(x(8))*(u(1)/m) - g;
     % integração numérica das acelerações (Essa é a melhor forma de integrar?)
     x(4) = x(4) + ddx*Ts; x(1) = x(1) + x(4)*Ts; %x

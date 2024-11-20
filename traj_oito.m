@@ -4,12 +4,12 @@ function [X_d] = traj_oito(t, state_d)
 % parâmetros: tStepMax - Passo de tempo da simulação
 w=2*pi/120; %frequência Angular
 for i=1:length(t)
-    state_d(i,1)=0;
+    state_d(i,1)=5*sin(t(i));
     state_d(i,2)=0.5*sin(0.5*t(i));
-    state_d(i,3)=5*sin(t(i))+10;
-    state_d(i,4)=0;
+    state_d(i,3)=10;
+    state_d(i,4)=5*cos(t(i));
     state_d(i,5)=0.25*cos(0.5*t(i));
-    state_d(i,6)=5*cos(t(i));
+    state_d(i,6)=0;
     state_d(i,7)=0;
     state_d(i,8)=0;
     state_d(i,9)=0;

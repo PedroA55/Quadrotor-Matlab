@@ -58,9 +58,9 @@ legend('\psi','\psi desejado', '\psi alvo')
 suptitle('Resposta dos 6 graus de liberdade')
 %% Plotar a trajetória em 3D
 figure 
-plot3(posicao_x(1:end),posicao_y(1:end),posicao_z(1:end), 'g', 'LineWidth', 2)
+plot3(posicao_x(3:end),posicao_y(3:end),posicao_z(3:end), 'g', 'LineWidth', 2)
 hold on
-plot3(X_d(1:end,1),X_d(1:end,2),X_d(1:end,3), '-.k', 'LineWidth', 2)
+plot3(X_d(3:end,1),X_d(3:end,2),X_d(3:end,3), '-.k', 'LineWidth', 2)
 grid on
 xlabel('x(m)')
 ylabel('y(m)')
@@ -114,30 +114,30 @@ for i=1:(length(Sinal_controle(:,1)))
 end    
 figure;
 subplot(2,2,1)
-plot(t, Vector_Tmax, '-.r', 'LineWidth',2); hold on;
-plot(t, Vector_Tmin, '-.r', 'LineWidth',2); hold on;
+plot(t, Vector_Tmax(1:end), '-.r', 'LineWidth',2); hold on;
+plot(t, Vector_Tmin(1:end), '-.r', 'LineWidth',2); hold on;
 plot(t,Forces(:,1), 'b', 'LineWidth',1); hold off;
 grid minor
 ylabel('F_1 (N)')
 subplot(2,2,2)
-plot(t, Vector_Tmax, '-.r', 'LineWidth',2); hold on;
-plot(t, Vector_Tmin, '-.r', 'LineWidth',2); hold on;
+plot(t, Vector_Tmax(1:end), '-.r', 'LineWidth',2); hold on;
+plot(t, Vector_Tmin(1:end), '-.r', 'LineWidth',2); hold on;
 plot(t,Forces(:,2), 'b', 'LineWidth',1); hold off;
 grid minor
 ylabel('F_2 (N)')
 subplot(2,2,3)
-plot(t, Vector_Tmax, '-.r', 'LineWidth',2); hold on;
-plot(t, Vector_Tmin, '-.r', 'LineWidth',2); hold on;
-plot(t,Forces(:,1), 'b', 'LineWidth',1); hold off;
+plot(t, Vector_Tmax(1:end), '-.r', 'LineWidth',2); hold on;
+plot(t, Vector_Tmin(1:end), '-.r', 'LineWidth',2); hold on;
+plot(t,Forces(:,3), 'b', 'LineWidth',1); hold off;
 grid minor
 ylabel('F_3 (N)')
 subplot(2,2,4)
-plot(t, Vector_Tmax, '-.r', 'LineWidth',2); hold on;
-plot(t, Vector_Tmin, '-.r', 'LineWidth',2); hold on;
-plot(t,Forces(:,2), 'b', 'LineWidth',1); hold off;
+plot(t, Vector_Tmax(1:end), '-.r', 'LineWidth',2); hold on;
+plot(t, Vector_Tmin(1:end), '-.r', 'LineWidth',2); hold on;
+plot(t,Forces(:,4), 'b', 'LineWidth',1); hold off;
 grid minor
 ylabel('F_4 (N)')
-title('Thrust of each motor')
+suptitle('Thrust of each motor')
 % 
 % figure;
 % subplot(4,1,1)

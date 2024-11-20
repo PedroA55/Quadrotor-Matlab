@@ -48,11 +48,34 @@ fprintf('O momento máximo de guinada é:  %4.2f N.m \n', MomentYaw_max)
 % 1  SIM
 incluir_din_motor = 0;
 %% Configuração de simulação
-Tfinal=10;
+Tfinal=30;
 tStepMax=1e-3; Ts = tStepMax; % Tempo de amostragem
 t=0:tStepMax:Tfinal; %Define o vetor de tempo
 t=t';
 state_d = zeros(length(t),12); % Define o tamanho da matriz do vetor de estado
+%% Trajetória escolhida
+% ------------------------ Trajetórias lineares ------------------------- %
+%X_d = traj_hover(t, state_d);
+%X_d=traj_vertical(t,state_d);
+%X_d = traj_decola_hover(t, state_d);
+%X_d=traj_diagonal(t,state_d);
+%X_d = traj_estab_Atitude(t, state_d);
+%X_d = traj_circular(t, state_d);
+%X_d=traj_senoide(t,state_d);
+%X_d=traj_helipcoidal(t,state_d);
+%X_d=traj_oito(t,state_d);
+%X_d = traj_step_angle(t, state_d);
+% ------------------------ Trajetórias complexas ------------------------ %
+uso_waypoint = 1; % decido se a trajetória é com way_point
+if uso_waypoint % correção do tamanho do vetor tempo.
+    %X_d = traj_waypoint(t, Ts);
+    X_d = traj_waypoint2(t, Ts);
+    %X_d = traj_waypoint3(t, Ts);
+    %X_d = traj_waypoint4(t, Ts);
+    %X_d = traj_waypointFinal(t, Ts);
+    m = size(X_d,1);
+    t = linspace(0,Tfinal,m)';
+end
 %Limites dos motores
 Vector_Tmax = zeros(length(t),1);
 Vector_Tmin = zeros(length(t),1);
@@ -64,30 +87,6 @@ for i=1:length(t)
     Vector_Mmax(i) = Moment_max;
     Vector_MYawmax(i) = MomentYaw_max;
 end
-%% Trajetória escolhida
-% ------------------------ Trajetórias lineares ------------------------- %
-%X_d = traj_hover(t, state_d);
-%X_d=traj_vertical(t,state_d);
-%X_d = traj_decola_hover(t, state_d);
-%X_d=traj_diagonal(t,state_d);
-X_d = traj_estab_Atitude(t, state_d);
-%X_d = traj_circular(t, state_d);
-%X_d=traj_senoide(t,state_d);
-%X_d=traj_helipcoidal(t,state_d);
-%X_d=traj_oito(t,state_d);
-%X_d = traj_step_angle(t, state_d);
-% ------------------------ Trajetórias complexas ------------------------ %
-uso_waypoint = 0; % decido se a trajetória é com way_point
-if uso_waypoint % correção do tamanho do vetor tempo.
-    %X_d = traj_waypoint(t, Ts);
-    X_d = traj_waypoint2(t, Ts);
-    %X_d = traj_waypoint3(t, Ts);
-    %X_d = traj_waypoint4(t, Ts);
-    %X_d = traj_waypointFinal(t, Ts);
-    m = size(X_d,1);
-    t = linspace(0,Tfinal,m)';
-end
-
 %% Condições iniciais dependendo da minha trajetória X_d
 % Condições iniciais para as posições
 x0 = X_d(1,1);
@@ -98,12 +97,12 @@ vx0 = X_d(1,4);
 vy0 = X_d(1,5);
 vz0 = X_d(1,6);
 % Condições iniciais ângulos de Euler
-% phi0 = X_d(1,7);
-% theta0 = X_d(1,8);
-% psi0 = X_d(1,9);
-phi0 = 30*(pi/180);
-theta0 = 30*(pi/180);
-psi0 = 45*(pi/180);
+phi0 = X_d(1,7);
+theta0 = X_d(1,8);
+psi0 = X_d(1,9);
+%phi0 = 20*(pi/180);
+%theta0 = 20*(pi/180);
+%psi0 = 45*(pi/180);
 % Condições iniciais de p,q,r
 p0 = X_d(1,10);
 q0 = X_d(1,11);
@@ -140,16 +139,16 @@ rank(Co);
 fprintf('\n O posto da Matriz de Controlabilidade      = %g',rank(Co))
 fprintf('\n Dimensão da Matriz A                       = %g \n',6)
 % Definição das matrizes de poderação Q e R
-q11 = 10^(2); % pondera mais os ângulos
-q22 = 10^(2);
-q33 = 10^(2);
-q44 = 10^(-2); % Restringe menos a taxa (p,q,r)
-q55 = 10^(-2);
-q66 = 10^(-2);
+q11 = 1*10^(3); % pondera mais os ângulos
+q22 = 1*10^(3);
+q33 = 6*10^(2);
+q44 = 2*10^(1); % Restringe menos a taxa (p,q,r)
+q55 = 2*10^(1);
+q66 = 2*10^(1);
 Q = diag([q11,q22,q33,q44,q55,q66]);
-r11 = 10^(0);
-r22 = 10^(0);
-r33 = 10^(0);
+r11 = 8*10^(-1);
+r22 = 8*10^(-1);
+r33 = 8*10^(-1);
 R = [r11 0 0;0 r22 0; 0 0 r33];
 % Resolução da eq. Ricatti pelo MATLAB
 P = are(A, B*inv(R)*B',C'*Q*C);
@@ -166,30 +165,23 @@ Kz = inv(R)*B'*G;
 C = eye(6,6);
 % Testei a controlabilidade para x0 e este sistema é controlável nesta
 % condição.
-% Definição das matrizes de poderação Q e R
-q11o = 10^(2); % pondera os ângulos
-q22o = 10^(2);
-q33o = 10^(2);
-q44o = 10^(-2); % Restringe a taxa (p,q,r)
-q55o = 10^(-2);
-q66o = 10^(-2);
+% Definição das matrizes de poderação Q e R que respeita a saturação
+q11o = 1*10^(3); % pondera os ângulos
+q22o = 1*10^(3);
+q33o = 6*10^(2);
+q44o = 2*10^(1); % Restringe a taxa (p,q,r)
+q55o = 2*10^(1);
+q66o = 2*10^(1);
 Qo = diag([q11o,q22o,q33o,q44o,q55o,q66o]);
-r11o = 10^(0);
-r22o = 10^(0);
-r33o = 10^(0);
+r11o = 8*10^(-1);
+r22o = 8*10^(-1);
+r33o = 8*10^(-1);
 Ro = [r11o 0 0;0 r22o 0; 0 0 r33o];
-% Definição das matrizes de poderação Q e R
-% q11o = 10^(-1); % pondera os ângulos
-% q22o = 10^(-1);
-% q33o = 10^(-2);
-% q44o = 10^(1); % Restringe a taxa (p,q,r)
-% q55o = 10^(1);
-% q66o = 10^(-1);
-% Qo = diag([q11o,q22o,q33o,q44o,q55o,q66o]);
-% r11o = 10^(0);
-% r22o = 10^(0);
-% r33o = 10^(0);
-% Ro = [r11o 0 0;0 r22o 0; 0 0 r33o];
+% Estrutura escolhida A(x, alpha)
+alpha = [0.01 1 1];
+Cv4 = [1 0 0; 0 1 0; 0 0 1];
+Qv4 = 80*[1 0 0; 0 5 0; 0 0 1];
+Rv4 = 25*[1 0 0;0 1 0; 0 0 1];
 
 %% Roda o modelo não linear
 % OBS importante: Ao rodar apenas esse trecho várias vezes, toma cuidado
@@ -223,6 +215,11 @@ for i=1:(length(t)-1)
     %-------- Gerando a trajetória de referência para a atitude ----------%
     dphi = (phi_des - x_ant(7))/Ts; dtheta = (theta_des - x_ant(8))/Ts;
     dpsi = (psi_des - x_ant(9))/Ts;
+    usa_filtro_PB = 1;
+    %---------------- Filtrando as derivadas númericas -------------------%
+    if usa_filtro_PB
+        [dphi, dtheta, dpsi] = Filtro_PB(dphi, dtheta, dpsi, Ts);
+    end    
     z = [phi_des, theta_des, psi_des, dphi, dtheta, dpsi];
     
     %------------------- Controladores de atitude ------------------------%
@@ -230,7 +227,8 @@ for i=1:(length(t)-1)
     %[u2, u3, u4] = controller_LQT(x,z, K, Kz);
     %[u2, u3, u4] = controller_SDRE(x,wd,z, Ao, Bo, Qo, Ro, C, params);
     %[u2, u3, u4] = controller_SDREv2(x,wd,z, Ao, Bo, Qo, Ro, C, params);
-    [u2, u3, u4] = controller_SDREv3(x,wd,z, Qo, Ro, C, params);
+    %[u2, u3, u4] = controller_SDREv3(x,wd,z, Qo, Ro, C, params);
+    [u2, u3, u4] = controller_SDREv4(x,wd,z, Qv4, Rv4, Cv4, params, alpha);
     %-------------------- Sinal de Controle Final ------------------------%
     U = [u1, u2, u3, u4]';
     %Obs: Ao repassar a ação de controle diretamente para a planta, estou
@@ -278,5 +276,8 @@ run graphics.m
 % Estou experimentando controladores diferentes e portanto é interessante
 % fazermos comparativos diretos entre eles. 
 % Salvando todas as informações
-DATA = [t, Todos_estados, X_d, Ang_Target, Controle];
-save("SDRE_stbENOC2.mat","DATA")
+%DATA = [t, Todos_estados, X_d, Ang_Target, Controle, Monitorar];
+%save("DATA/SDREv4_sat_oito.mat","DATA")
+
+%% Análise do sistema
+run Performance_Analysis.m
